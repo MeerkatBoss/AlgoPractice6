@@ -47,7 +47,7 @@ uint64_t hash_str_polynome  (const char* value)
     uint64_t hash = 0xA2F58F47FDCF22D5;
 
     while (*value)
-        hash = hash*multiplicand + *(value++);
+        hash = hash*multiplicand + (uint64_t) *(value++);
 
     return hash;
 }
@@ -186,8 +186,8 @@ static const uint64_t crc_table[256] = {
 
 uint64_t hash_str_crc64(const char* value)
 {
-    uint64_t crc = ~0;
+    uint64_t crc = ~0lu;
     while (*value)
-		crc = crc_table[(crc ^ *(value++)) & 0xff] ^ (crc >> 8);
+		crc = crc_table[(crc ^ (uint64_t) *(value++)) & 0xff] ^ (crc >> 8);
     return ~crc;
 }

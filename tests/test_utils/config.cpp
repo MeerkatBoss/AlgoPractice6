@@ -61,7 +61,7 @@ int test_set_output(const char* const* str, void* params)
     return 1;
 }
 
-int test_set_append(const char* const* str, void* params)
+int test_set_append([[maybe_unused]] const char* const* str, void* params)
 {
     TestConfig* config = (TestConfig*) params;
     if (config->test_case != TEST_NONE)
@@ -75,11 +75,12 @@ int test_set_append(const char* const* str, void* params)
     }
 
     config->append_to_file = 1;
-    return 1;
+    return 0;
 }
 
 __attribute__((noreturn))
-int test_get_help(const char* const* str, void* params)
+int test_get_help([[maybe_unused]] const char* const* str,
+                  [[maybe_unused]] void* params)
 {
     print_help(&TEST_ARGS);
     exit(0);

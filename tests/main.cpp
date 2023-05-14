@@ -1,8 +1,5 @@
 #include <stdio.h>
 
-#include "hash_table/hash_table.h"
-#include "table_utils/utils.h"
-
 #include "test_utils/config.h"
 #include "test_cases/histogram.h"
 #include "test_cases/benchmark.h"
@@ -14,7 +11,7 @@ int main(int argc, char** argv)
 
     if (parsed < 0 || config.had_error)
     {
-        fprintf(stderr, "Invalid arguments");
+        fprintf(stderr, "Invalid arguments\n");
         return 1;
     }
 
@@ -29,7 +26,7 @@ int main(int argc, char** argv)
         return run_test_benchmark(argc, argv, &config);
     case TEST_NONE:
     default:
-        fprintf(stderr, "Invalid test case");
+        fprintf(stderr, "Invalid test case\n");
         return 1;
     }
 }

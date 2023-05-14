@@ -35,6 +35,12 @@ endif
 PROJECT	:= hash_practice
 VERSION := 0.0.1
 
+TEST_ARGS:=--help
+HASH_FUNCTION:=hash_int_multiplicative
+PRESET:="presets/hash_int.h"
+
+DEFFLAGS := -DHASH_FUNCTION=$(HASH_FUNCTION) -DHASH_PRESET='$(PRESET)'
+
 SRCDIR	:= src
 TESTDIR := tests
 LIBDIR	:= lib
@@ -48,10 +54,9 @@ SRCEXT	:= cpp
 HEADEXT	:= h
 OBJEXT	:= o
 
-
 SOURCES := $(shell find $(SRCDIR) -type f -name "*.$(SRCEXT)")
 TESTS	:= $(shell find $(TESTDIR) -type f -name "*$(SRCEXT)")
-LIBS	:= $(patsubst lib%.a, %, $(shell find $(LIBDIR) -type f))
+LIBS	:= $(patsubst $(LIBDIR)/lib%.a, %, $(shell find $(LIBDIR) -type f))
 OBJECTS	:= $(patsubst $(SRCDIR)/%,$(OBJDIR)/%,$(SOURCES:.$(SRCEXT)=.$(OBJEXT)))
 TESTOBJS:= $(patsubst %,$(OBJDIR)/%,$(TESTS:.$(SRCEXT)=.$(OBJEXT)))
 
@@ -72,12 +77,12 @@ init:
 # Build test objects
 $(OBJDIR)/$(TESTDIR)/%.$(OBJEXT): $(TESTDIR)/%.$(SRCEXT)
 	@mkdir -p $(dir $@)
-	@$(CC) $(CFLAGS) $(INCFLAGS) -I$(TESTDIR) -c $< -o $@
+	@$(CC) $(DEFFLAGS) $(CFLAGS) $(INCFLAGS) -I$(TESTDIR) -c $< -o $@
 
 # Build source objects
 $(OBJDIR)/%.$(OBJEXT): $(SRCDIR)/%.$(SRCEXT)
 	@mkdir -p $(dir $@)
-	@$(CC) $(CFLAGS) $(INCFLAGS) -c $< -o $@
+	@$(CC) $(DEFFLAGS) $(CFLAGS) $(INCFLAGS) -c $< -o $@
 
 # Build project binary
 $(BINDIR)/$(PROJECT): $(OBJECTS)
@@ -99,7 +104,10 @@ run: $(BINDIR)/$(PROJECT)
 	$(BINDIR)/$(PROJECT) $(ARGS)
 
 test: $(BINDIR)/$(PROJECT)_tests
-	 $(BINDIR)/$(PROJECT)_tests $(ARGS)
+	 $(BINDIR)/$(PROJECT)_tests $(TEST_ARGS)
+
+histogram: $(BINDIR)/$(PROJECT)_tests
+	 $(BINDIR)/$(PROJECT)_tests -o histograms.csv --append histogram
 
 .PHONY: all remake clean cleaner
 

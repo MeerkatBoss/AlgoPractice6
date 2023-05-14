@@ -107,7 +107,7 @@ static const arg_tag TEST_TAGS[] = {
 
 static const arg_info TEST_ARGS = {
     .help_message = 
-        "hash_table_tests [-o <FILE> [-a]] <TEST CASE> [TEST OPTIONS]",
+        "hash_table_tests [-o <FILE> [--append]] <TEST CASE> [TEST OPTIONS]",
     .name_handler = NULL,
     .plain_handler = test_select_test_case,
     .tags = TEST_TAGS,

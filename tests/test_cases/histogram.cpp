@@ -3,34 +3,27 @@
 
 #include "meerkat_assert/asserts.h"
 
-#include "hash_table/hash_table.h"
-#include "table_utils/utils.h"
+#include "hash_table/fixed_hash_table.h"
 
 #include "histogram.h"
 
-static void dump_contents(FILE* output, const HashTable* table);
+
+void fill_table(FixedHashTable* table, size_t data_size);
+
+static void dump_contents(FILE* output, const FixedHashTable* table);
+static size_t get_bucket_size(const FixedHashTableEntry* head);
 
 #define STR(x) __BASIC_STR(x)
 #define __BASIC_STR(x) #x
 
-int run_test_histogram(int argc, const char* const* argv,
+int run_test_histogram([[maybe_unused]] int argc,
+                       [[maybe_unused]] const char* const* argv,
                        const TestConfig* config)
 {
-    HistogramConfig params = {-1, NULL};
     FILE *output = NULL;
-    HashTable table = {};
-
-    int parsed = parse_args(argc, argv, &HISTOGRAM_ARGS, &params);
 
     SAFE_BLOCK_START
     {
-        ASSERT_EQUAL_MESSAGE(
-            parsed, argc, "Invalid arguments");
-        ASSERT_POSITIVE_MESSAGE(
-            params.table_size, "Table size not specified");
-        ASSERT_TRUE_MESSAGE(
-            params.filename != NULL, "Input file not specified");
-
         if (config->filename)
         {
             ASSERT_MESSAGE(
@@ -41,12 +34,6 @@ int run_test_histogram(int argc, const char* const* argv,
         }
         else output = stdout;
 
-        ASSERT_ZERO_MESSAGE(
-            hash_table_ctor(&table, (size_t) params.table_size),
-            "Invalid table size (not a prime number)");
-        ASSERT_ZERO_MESSAGE(
-            fill_hash_table(&table, params.filename, -1),
-            "Failed to read input file");
     }
     SAFE_BLOCK_HANDLE_ERRORS
     {
@@ -55,45 +42,75 @@ int run_test_histogram(int argc, const char* const* argv,
     }
     SAFE_BLOCK_END
     
+    srand(0);
+
+    FixedHashTable table = {};
+
+    fixed_hash_table_ctor(&table, 1000);
+    fill_table(&table, 1'000'000);
     dump_contents(output, &table);
-    hash_table_dtor(&table);
+    fixed_hash_table_dtor(&table);
     fclose(output);
     
     return 0;
 }
 
-static void dump_contents(FILE* output, const HashTable* table)
+static void dump_contents(FILE* output, const FixedHashTable* table)
 {
     fputs(STR(HASH_FUNCTION), output);
 
     for (size_t i = 0; i < table->bucket_count; ++i)
     {
-        HashTableEntry* entry = &table->buckets[i];
-        fprintf(output, ",%zu", entry->count);
+        const FixedHashTableEntry* entry = &table->buckets[i];
+        fprintf(output, ",%zu", get_bucket_size(entry));
     }
     fputc('\n', output);
 }
 
-int histogram_next_arg(const char* const* str, void* params)
+static size_t get_bucket_size(const FixedHashTableEntry* head)
 {
-    HistogramConfig* config = (HistogramConfig*) params;
+    size_t size = 0;
+    while ((head = head->next))
+        ++ size;
 
-    if (config->table_size >= 0)
-    {
-        config->filename = *str;   
-        return 1;
-    }
-
-    char* end = NULL;
-    size_t size = strtoul(*str, &end, 10);
-
-    if (*end != '\0')
-    {
-        fprintf(stderr, "Error: '%s' is not a valid table size\n", *str);
-        return -1;
-    }
-
-    config->table_size = size;
-    return 1;
+    return size;
 }
+
+#if defined HASH_TABLE_KEY_INT
+
+void fill_table(FixedHashTable* table, size_t data_size)
+{
+    for (size_t i = 0; i < data_size; ++i)
+        fixed_hash_table_add_key(table, rand());
+}
+
+#elif defined HASH_TABLE_KEY_DOUBLE
+
+void fill_table(FixedHashTable* table, size_t data_size)
+{
+    for (size_t i = 0; i < data_size; ++i)
+        fixed_hash_table_add_key(table,
+                (double) rand() * ((double)rand() / (double)rand()));
+}
+
+#elif defined HASH_TABLE_KEY_STR
+
+void fill_table(FixedHashTable* table, size_t data_size)
+{
+    const size_t max_len = 1024;
+    char buffer[max_len] = "";
+
+    for (size_t i = 0; i < data_size; ++i)
+    {
+        size_t length = (size_t) rand() % max_len;
+        buffer[length] = '\0';
+        for (size_t j = 0; j < length; ++j)
+            buffer[j] = (char) ('a' + rand()%26);
+        fixed_hash_table_add_key(table, buffer);
+    }
+}
+
+#else
+#error Unknown KEY_TYPE
+#endif
 
