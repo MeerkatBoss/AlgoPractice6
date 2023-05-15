@@ -38,8 +38,10 @@ VERSION := 0.0.1
 TEST_ARGS:=--help
 HASH_FUNCTION:=hash_int_multiplicative
 PRESET:="presets/hash_int.h"
+TABLE_TYPE:=CLOSED_ADDR
 
-DEFFLAGS := -DHASH_FUNCTION=$(HASH_FUNCTION) -DHASH_PRESET='$(PRESET)'
+DEFFLAGS := -DHASH_FUNCTION=$(HASH_FUNCTION) -DHASH_PRESET='$(PRESET)'\
+			-DTABLE_TYPE=$(TABLE_TYPE)
 
 SRCDIR	:= src
 TESTDIR := tests
@@ -108,6 +110,10 @@ test: $(BINDIR)/$(PROJECT)_tests
 
 histogram: $(BINDIR)/$(PROJECT)_tests
 	 $(BINDIR)/$(PROJECT)_tests -o histograms.csv --append histogram
+
+benchmark: $(BINDIR)/$(PROJECT)_tests $(BINDIR)/$(PROJECT)
+	 $(BINDIR)/$(PROJECT)_tests -o\
+		 results/$(shell echo $(TABLE_TYPE) | tr A-Z a-z).csv benchmark
 
 .PHONY: all remake clean cleaner
 

@@ -15,6 +15,12 @@
 
 #include "benchmark.h"
 
+#ifdef OPEN_ADDR
+#define TEST_NAME "open_addr_hash_table"
+#else
+#define TEST_NAME "closed_addr_hash_table"
+#endif
+
 struct ExecTime
 {
     double user_ms;
@@ -22,20 +28,23 @@ struct ExecTime
 };
 
 
-static ssize_t get_repeat(const char* str);
-
-static int fill_data(int argc, char** argv,
-                     double* sys_time, double* user_time, size_t data_size);
+static int fill_data(size_t start_size, size_t end_size, size_t step_size,
+                     double* sys_time, double* user_time);
 
 static int get_execution_time(int argc, char** argv, ExecTime* exec_time);
 
 static void run_child(int argc, char** argv);
 
 
-int run_test_benchmark(int argc, const char* const* argv,
+int run_test_benchmark([[maybe_unused]] int argc,
+                       [[maybe_unused]] const char* const* argv,
                        const TestConfig* config)
 {
-    size_t repeat_count = 10;
+    const size_t start_size = 10'000;
+    const size_t end_size   = 1'000'000;
+    const size_t step_size  = 10'000;
+    const size_t repeat_count = (end_size - start_size) / step_size + 1;
+
     FILE *output = NULL;
     double *sys_time = NULL, *user_time = NULL;
 
@@ -51,22 +60,6 @@ int run_test_benchmark(int argc, const char* const* argv,
         }
         else output = stdout;
 
-        ASSERT_GREATER_MESSAGE(
-            argc, 1, "No program to benchmark");
-
-        ssize_t parsed = get_repeat(argv[1]);
-        if (parsed >= 0)
-        {
-            argc--;
-            argv++;
-            ASSERT_GREATER_MESSAGE(
-                argc, 1, "No program to benchmark");
-            ASSERT_POSITIVE_MESSAGE(
-                parsed, "Benchmark repeat count must be positive");
-
-            repeat_count = (size_t) parsed;
-        }
-
         ASSERT_MESSAGE(
             sys_time = (double*) calloc(repeat_count, sizeof(*sys_time)),
             action_result != NULL,
@@ -76,11 +69,9 @@ int run_test_benchmark(int argc, const char* const* argv,
             action_result != NULL,
             "Failed to allocate memory");
 
-        -- argc;
-        ++ argv;
         ASSERT_ZERO_MESSAGE(
-            fill_data(argc, const_cast<char**>(argv),
-                        sys_time, user_time, repeat_count),
+            fill_data(start_size, end_size, step_size,
+                      sys_time, user_time),
             "Failed to run benchmark");
     }
     SAFE_BLOCK_HANDLE_ERRORS
@@ -90,67 +81,42 @@ int run_test_benchmark(int argc, const char* const* argv,
     }
     SAFE_BLOCK_END
 
-    double mean_sys   = get_mean(sys_time,  repeat_count);
-    double mean_user  = get_mean(user_time, repeat_count);
-    double mean_total = mean_sys + mean_user;
-
-    double err_sys   = get_stddev(sys_time,  mean_sys,  repeat_count);
-    double err_user  = get_stddev(user_time, mean_user, repeat_count);
-    double err_total = err_sys + err_user;
-
-    const double sys_exp   = get_round_exponent(err_sys);
-    const double user_exp  = get_round_exponent(err_user);
-    const double total_exp = get_round_exponent(err_total);
-
-    mean_sys   = round_with_exponent(mean_sys,   sys_exp);
-    mean_user  = round_with_exponent(mean_user,  user_exp);
-    mean_total = round_with_exponent(mean_total, total_exp);
-
-    err_sys   = round_with_exponent(err_sys,   sys_exp);
-    err_user  = round_with_exponent(err_user,  user_exp);
-    err_total = round_with_exponent(err_total, total_exp);
+    for (size_t iter = 0, i = start_size; i <= end_size; ++iter, i += step_size)
+        fprintf(output, TEST_NAME",%zu,%.3lf\n", i, sys_time[iter]
+                                                    + user_time[iter]);
 
     putchar('\n');
-    fprintf(output, "Total: %lgms (~%lgms)\n"
-                    "User:  %lgms (~%lgms)\n"
-                    "Sys:   %lgms (~%lgms)\n",
-                    mean_total, err_total,
-                    mean_user,  err_user,
-                    mean_sys,   err_sys);
-
     free(sys_time);
     free(user_time);
 
     return 0;
 }
 
-static ssize_t get_repeat(const char* str)
+static int fill_data(size_t start_size, size_t end_size, size_t step_size,
+                     double* sys_time, double* user_time)
 {
-    char* end = NULL;
+    const size_t data_size = (end_size - start_size) / step_size + 1;
 
-    long parsed = strtol(str, &end, 10);
-
-    if (parsed >= 0 && *end == '\0')
-        return parsed;
-
-    return -1;
-}
-
-static int fill_data(int argc, char** argv,
-                     double* sys_time, double* user_time, size_t data_size)
-{
     double last_ms = NAN;
-    const size_t repeat = 5;
+    const size_t repeat = 1;
+    char test_size[32] = "";
 
-    for (size_t i = 0; i < data_size; ++i)
+    char argc = 2;
+    const char* argv[] = { "./build/bin/hash_practice",
+                           test_size,
+                           NULL };
+
+    for (size_t i = start_size, iter = 0; i <= end_size; ++iter, i += step_size)
     {
         double sum_sys = 0, sum_user = 0;
         for (size_t j = 0; j < repeat; j++)
         {
-            progress_bar(i*repeat + j, data_size * repeat, last_ms);
+            sprintf(test_size, "%zu", i);
+            progress_bar(iter*repeat + j, data_size * repeat, last_ms);
 
             ExecTime exec_time = {};
-            if (get_execution_time(argc, argv, &exec_time) < 0)
+            if (get_execution_time(
+                        argc, const_cast<char**>(argv), &exec_time) < 0)
                 return -1;
             
             sum_sys  += exec_time.sys_ms;
@@ -159,8 +125,8 @@ static int fill_data(int argc, char** argv,
             last_ms = exec_time.sys_ms + exec_time.user_ms;
         }
 
-        sys_time[i]  = sum_sys  / repeat;
-        user_time[i] = sum_user / repeat;
+        sys_time[iter]  = sum_sys  / repeat;
+        user_time[iter] = sum_user / repeat;
     }
 
     progress_bar(data_size * repeat, data_size*repeat, NAN);
