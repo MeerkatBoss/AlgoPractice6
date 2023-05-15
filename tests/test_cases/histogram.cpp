@@ -1,9 +1,12 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 
 #include "meerkat_assert/asserts.h"
 
 #include "hash_table/fixed_hash_table.h"
+
+#include "test_utils/display.h"
 
 #include "histogram.h"
 
@@ -81,7 +84,10 @@ static size_t get_bucket_size(const FixedHashTableEntry* head)
 void fill_table(FixedHashTable* table, size_t data_size)
 {
     for (size_t i = 0; i < data_size; ++i)
+    {
         fixed_hash_table_add_key(table, rand());
+        progress_bar(i, data_size, NAN);
+    }
 }
 
 #elif defined HASH_TABLE_KEY_DOUBLE
@@ -89,15 +95,18 @@ void fill_table(FixedHashTable* table, size_t data_size)
 void fill_table(FixedHashTable* table, size_t data_size)
 {
     for (size_t i = 0; i < data_size; ++i)
+    {
         fixed_hash_table_add_key(table,
                 (double) rand() * ((double)rand() / (double)rand()));
+        progress_bar(i, data_size, NAN);
+    }
 }
 
 #elif defined HASH_TABLE_KEY_STR
 
 void fill_table(FixedHashTable* table, size_t data_size)
 {
-    const size_t max_len = 1024;
+    const size_t max_len = 512;
     char buffer[max_len] = "";
 
     for (size_t i = 0; i < data_size; ++i)
@@ -107,6 +116,7 @@ void fill_table(FixedHashTable* table, size_t data_size)
         for (size_t j = 0; j < length; ++j)
             buffer[j] = (char) ('a' + rand()%26);
         fixed_hash_table_add_key(table, buffer);
+        progress_bar(i, data_size, NAN);
     }
 }
 
