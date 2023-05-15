@@ -4,8 +4,6 @@
 #include "hash_table/closed_addr_hash_table.h"
 #include "hash_table/open_addr_hash_table.h"
 
-#define OPEN_ADDR
-
 #if defined OPEN_ADDR
 
 typedef OpenAddrHashTable hash_table_t;

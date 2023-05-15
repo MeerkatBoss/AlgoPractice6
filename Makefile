@@ -35,13 +35,13 @@ endif
 PROJECT	:= hash_practice
 VERSION := 0.0.1
 
-TEST_ARGS:=--help
-HASH_FUNCTION:=hash_int_multiplicative
-PRESET:="presets/hash_int.h"
-TABLE_TYPE:=CLOSED_ADDR
+TEST_ARGS?=--help
+HASH_FUNCTION?=hash_int_multiplicative
+PRESET?="presets/hash_int.h"
+TABLE_TYPE?=CLOSED_ADDR
 
 DEFFLAGS := -DHASH_FUNCTION=$(HASH_FUNCTION) -DHASH_PRESET='$(PRESET)'\
-			-DTABLE_TYPE=$(TABLE_TYPE)
+			-D$(TABLE_TYPE)
 
 SRCDIR	:= src
 TESTDIR := tests

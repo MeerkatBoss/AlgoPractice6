@@ -98,7 +98,7 @@ static int fill_data(size_t start_size, size_t end_size, size_t step_size,
     const size_t data_size = (end_size - start_size) / step_size + 1;
 
     double last_ms = NAN;
-    const size_t repeat = 1;
+    const size_t repeat = 5;
     char test_size[32] = "";
 
     char argc = 2;
