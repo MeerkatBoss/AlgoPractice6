@@ -39,9 +39,10 @@ TEST_ARGS?=--help
 HASH_FUNCTION?=hash_int_multiplicative
 PRESET?="presets/hash_int.h"
 TABLE_TYPE?=CLOSED_ADDR
+CMD_GEN?=RAND_CMD
 
 DEFFLAGS := -DHASH_FUNCTION=$(HASH_FUNCTION) -DHASH_PRESET='$(PRESET)'\
-			-D$(TABLE_TYPE)
+			-D$(TABLE_TYPE) -D$(CMD_GEN)
 
 SRCDIR	:= src
 TESTDIR := tests
@@ -113,7 +114,7 @@ histogram: $(BINDIR)/$(PROJECT)_tests
 
 benchmark: $(BINDIR)/$(PROJECT)_tests $(BINDIR)/$(PROJECT)
 	 $(BINDIR)/$(PROJECT)_tests -o\
-		 results/$(shell echo $(TABLE_TYPE) | tr A-Z a-z).csv benchmark
+		 results/$(shell echo $(TABLE_TYPE) | tr A-Z a-z)_$(shell echo $(CMD_GEN) | tr A-Z a-z).csv benchmark
 
 .PHONY: all remake clean cleaner
 

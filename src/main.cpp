@@ -54,7 +54,12 @@ int main(int argc, char** argv)
 
     for (size_t i = 0; i < repeat; ++i)
     {
+#ifdef RAND_CMD
         command cmd = (command) (rand() % 3);
+#else
+        int tmp = rand() % 4;
+        command cmd = tmp < 3 ? (command) tmp : CMD_INSERT;
+#endif
 
         switch (cmd)
         {
